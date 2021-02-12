@@ -97,8 +97,9 @@ Write sample/background rows to the sheet
 @param string s_row The sample row, 1-indexed
 @param string b_row The background row, 1-indexed
 @param xlsxwriter.Format b_format The format to use for the background row
+@param None|string norm_to The row to normalie to. If not None, will write a formula to normalize the given s_row to the supplied norm_ro row
 """
-def write_row(worksheet, s_row, b_row, b_format):
+def write_row(worksheet, s_row, b_row, b_format, norm_to=None):
   worksheet.write('A' + s_row, 'Condition ' + str((i+1)))
   worksheet.write('D' + s_row, 'S')
   worksheet.write('D' + b_row, 'B')
@@ -107,13 +108,18 @@ def write_row(worksheet, s_row, b_row, b_format):
   worksheet.write_formula('H' + s_row, '=G' + s_row + '-G' + b_row)
   worksheet.set_row(int(b_row)-1, None, b_format)
 
+  if norm_to is not None:
+    worksheet.write_formula('I' + s_row, '=H' + s_row + '/H' + norm_to)
+
 # Add conditions
 for ab_idx in range(0, len(arguments['--ab'])):
   start_row = 3+ab_idx*arguments['--conditions']*4 # 2 rows / condition, done twice (once for loading, once for Ab)
   # Loading control
+  loading_control_rows = []
   for i in range(0,arguments['--conditions']):
     s_row = str(start_row+i*2)
     b_row = str(start_row+1+i*2)
+    loading_control_rows.append(s_row)
     write_row(worksheet, s_row, b_row, condition_end_format)
   worksheet.merge_range(start_row-1, 2, int(b_row)-1, 2, arguments['--loading-ctrl'][ab_idx], merge_format)
   worksheet.set_row(int(b_row)-1, None, ab_end_format)
@@ -122,7 +128,7 @@ for ab_idx in range(0, len(arguments['--ab'])):
   for i in range(0,arguments['--conditions']):
     s_row = str(start_row+i*2)
     b_row = str(start_row+1+i*2)
-    write_row(worksheet, s_row, b_row, condition_end_format)
+    write_row(worksheet, s_row, b_row, condition_end_format, loading_control_rows[i])
   worksheet.merge_range(start_row-1, 2, int(b_row)-1, 2, arguments['--ab'][ab_idx], merge_format)
   worksheet.set_row(int(b_row)-1, None, ab_end_format)
 
